@@ -29,7 +29,8 @@ static void early_printk_setup(struct console *c)
 	early_printk_move_cursor();
 }
 
-static void early_printk_write(struct console *con, const char *str, unsigned n)
+static void early_printk_write(struct console *con __attribute__((unused)),
+	const char *str, unsigned n)
 {
 	char c;
 	int  i, k, j;

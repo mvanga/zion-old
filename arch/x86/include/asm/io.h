@@ -1,7 +1,7 @@
 #ifndef ZION_ASM_IO_H
 #define ZION_ASM_IO_H
 
-#include <stdint.h>
+#include <zion/types.h>
 
 /* Basic port I/O */
 static inline void outb(uint8_t v, uint16_t port)

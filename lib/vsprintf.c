@@ -339,9 +339,9 @@ static char *ip4_addr_string(char *buf, uint8_t *addr, int field_width,
  * function pointers are really function descriptors, which contain a
  * pointer to the real address.
  */
-static char *pointer(const char *fmt, char *buf, void *ptr, int field_width, int precision, int flags)
+static char *pointer(const char *fmt __attribute__((unused)), char *buf,
+	void *ptr, int field_width, int precision, int flags)
 {
-	fmt = 0;
 	if (!ptr)
 		return string(buf, "(null)", field_width, precision, flags);
 
