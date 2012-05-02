@@ -1,3 +1,4 @@
+#include <zion/module.h>
 #include <zion/console.h>
 #include <zion/io.h>
 
@@ -71,3 +72,10 @@ struct console early_printk = {
 	.setup = early_printk_setup,
 	.write = early_printk_write,
 };
+
+int early_printk_init(void)
+{
+	return console_register(&early_printk);
+}
+
+early_init(early_printk_init);

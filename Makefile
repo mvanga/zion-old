@@ -7,7 +7,7 @@ AS=as
 
 obj-$(CONFIG_ARCH_X86) += arch/x86/boot.o arch/x86/init.o arch/x86/early_printk.o arch/x86/gdt.o arch/x86/idt.o arch/x86/segment.o arch/x86/irq.o
 obj-$(CONFIG_ARCH_X86_TIMER) += arch/x86/timer.o
-obj-y += kernel/main.o kernel/console.o kernel/timer.o
+obj-y += kernel/main.o kernel/console.o kernel/timer.o kernel/module.o
 obj-y += lib/atoi.o lib/ctype.o lib/printk.o lib/rand.o lib/string.o lib/strtol.o lib/vsprintf.o
 
 CFLAGS=-nostdlib -nostdinc -fno-builtin -fno-stack-protector -I./arch/$(ARCH)/include -I./include -Wall -Wextra -ggdb

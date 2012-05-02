@@ -1,5 +1,6 @@
 #include <zion/console.h>
 #include <zion/io.h>
+#include <zion/module.h>
 
 #include <asm/segment.h>
 
@@ -8,16 +9,17 @@ extern struct console early_printk;
 
 int arch_main(void)
 {
-	int ret;
+	/* call early initcalls */
+	do_initcalls_early();
 
-	ret = console_register(&early_printk);
-	if (ret < 0)
-		return -1;
 	gdt_init();
 	idt_init();
 
-	asm volatile("int $0x25");
+	/* we can safely enable interrupts now */
 	asm volatile("sti");
+
+	/* call the arch initcalls */
+	do_initcalls_arch();
 
 	return main();
 }

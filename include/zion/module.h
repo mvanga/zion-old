@@ -20,12 +20,27 @@ extern exit_t __exit_end;
 	static exit_t __exit_##fn##id __used \
 	__section(.module#id.exit) = fn;
 
-#define arch_init(fn)		__define_initcall("0",fn,0)
-#define core_init(fn)		__define_initcall("1",fn,1)
-#define module_init(fn)		__define_initcall("2",fn,2)
+#define early_init(fn)		__define_initcall("0",fn,0)
+#define arch_init(fn)		__define_initcall("1",fn,1)
+#define core_init(fn)		__define_initcall("2",fn,2)
+#define module_init(fn)		__define_initcall("3",fn,3)
 
-#define arch_exit(fn)		__define_exitcall("0",fn,0)
-#define core_exit(fn)		__define_exitcall("1",fn,1)
-#define module_exit(fn)		__define_exitcall("2",fn,2)
+#define arch_exit(fn)		__define_exitcall("1",fn,1)
+#define core_exit(fn)		__define_exitcall("2",fn,2)
+#define module_exit(fn)		__define_exitcall("3",fn,3)
+
+void do_initcalls_early(void);
+
+void do_initcalls_all(void);
+void do_exitcalls_all(void);
+
+void do_initcalls_arch(void);
+void do_exitcalls_arch(void);
+
+void do_initcalls_core(void);
+void do_exitcalls_core(void);
+
+void do_initcalls_module(void);
+void do_exitcalls_module(void);
 
 #endif

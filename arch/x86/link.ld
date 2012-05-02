@@ -17,17 +17,32 @@ SECTIONS
 	. = ALIGN(16);
 	__init_begin = .;
 	.text.init : {
+		__early_init_begin = .;
 		*(.module0.init);
+		__early_init_end = .;
+		__arch_init_begin = .;
 		*(.module1.init);
+		__arch_init_end = .;
+		__core_init_begin = .;
 		*(.module2.init);
+		__core_init_end = .;
+		__module_init_begin = .;
+		*(.module3.init);
+		__module_init_end = .;
 	}
 	__init_end = .;
 
 	__exit_begin = .;
 	.text.exit : {   
-		*(.module0.exit);
+		__arch_exit_begin = .;
 		*(.module1.exit);
+		__arch_exit_end = .;
+		__core_exit_begin = .;
 		*(.module2.exit);
+		__core_exit_end = .;
+		__module_exit_begin = .;
+		*(.module3.exit);
+		__module_exit_end = .;
 	}
 	__exit_end = .;
 
@@ -46,4 +61,5 @@ SECTIONS
 	}
 	. = ALIGN(4096);
 	__bss_end = .;
+	__alloc_start = .;
 }
