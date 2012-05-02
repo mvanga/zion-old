@@ -3,6 +3,7 @@
 #include <zion/module.h>
 
 #include <asm/segment.h>
+#include <asm/paging.h>
 
 extern int main();
 extern struct console early_printk;
@@ -20,6 +21,8 @@ int arch_main(void)
 
 	/* call the arch initcalls */
 	do_initcalls_arch();
+
+	paging_init();
 
 	return main();
 }

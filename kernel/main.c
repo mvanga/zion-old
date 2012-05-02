@@ -3,14 +3,15 @@
 #include <zion/types.h>
 #include <zion/module.h>
 #include <zion/jiffies.h>
+#include <zion/alloc.h>
+#include <zion/bitset.h>
 
 int main(void)
 {
 	do_initcalls_core();
-	int i = 0;
 	while (1) {
-		printk("tick = %d\n", i++);
-		delay(100);
+		printk(".");
+		delay(1000);
 	}
 	do_exitcalls_core();
 	return 0;
