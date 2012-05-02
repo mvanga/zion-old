@@ -27,8 +27,8 @@ mboot:
 .extern main
 
 start:
-	mov $_sys_stack, %esp
 	cli
+	mov $_sys_stack, %esp
 	call arch_main
 loop:
 	jmp loop
