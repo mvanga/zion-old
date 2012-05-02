@@ -14,7 +14,6 @@ void do_initcalls(void)
 	init_t *call;
 	call = &__init_begin;
 	do {
-		printk("running call\n");
 		(*call)();
 		call++;
 	} while (call < &__init_end);
