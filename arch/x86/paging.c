@@ -108,7 +108,11 @@ void switch_page_dir(struct page_dir *dir)
 void page_fault_handler(struct regs *r)
 {
 	uint32_t fault_addr;
-	int present, rw, us, reserved, id;
+	int present;
+	int rw;
+	int us;
+	int reserved;
+	int id;
 
 	/*
 	 * A page fault has occurred. The faulting address is stored in the CR2
@@ -132,6 +136,8 @@ void page_fault_handler(struct regs *r)
 		printk("user-mode ");
 	if (reserved)
 		printk("reserved ");
+	if (id)
+		printk("fetch ");
 	printk(") @ 0x%08x\n", fault_addr);
 	for (;;);
 }
