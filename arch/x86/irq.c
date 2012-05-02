@@ -37,6 +37,13 @@ void irq_enable(unsigned char irq)
 	outb(port, value);        
 }
 
+void request_exception(int n, isr_t handler)
+{
+	if (n >= 32)
+		return;
+	irq_handlers[n] = handler;
+}
+
 void request_irq(int n, isr_t handler)
 {
 	irq_handlers[n+32] = handler;

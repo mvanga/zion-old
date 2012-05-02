@@ -1,13 +1,13 @@
 #include <zion/bitset.h>
 #include <zion/stdlib.h>
 #include <zion/types.h>
-#include <zion/alloc.h>
 #include <zion/string.h>
 #include <zion/stdio.h>
 
 #define BIT_INDEX(a) (a/(8*sizeof(uint32_t)))
 #define BIT_OFFSET(a) (a%(8*sizeof(uint32_t)))
 
+#if 0
 struct bitset *bitset_create(int nbits)
 {
 	int len;
@@ -29,6 +29,7 @@ struct bitset *bitset_create(int nbits)
 
 	return b;
 }
+#endif
 
 void bit_set(struct bitset *b, int bit)
 {

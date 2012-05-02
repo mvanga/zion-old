@@ -2,11 +2,11 @@
 #include <zion/bitset.h>
 #include <zion/stdio.h>
 #include <zion/stdlib.h>
-#include <zion/alloc.h>
 #include <zion/string.h>
 
 #include <asm/irq.h>
 #include <asm/paging.h>
+#include <asm/alloc.h>
 
 struct bitset *frames;
 
@@ -16,6 +16,29 @@ struct page_dir *curr_page_dir;
 struct page_dir *kern_page_dir;
 
 extern uint32_t alloc_current;
+
+struct bitset *arch_bitset_create(int nbits)
+{
+	int len;
+	struct bitset *b;
+
+	len = (nbits/(sizeof(uint32_t)*8)) +
+		((nbits%(sizeof(uint32_t)*8)) ? 1 : 0);
+
+	b = arch_kmalloc(sizeof(struct bitset));
+	if (!b)
+		return NULL;
+	b->bits = arch_kmalloc(len * sizeof(uint32_t));
+	/* ignore alloc failures */
+	if (!b->bits)
+		return NULL;
+
+	memset(b->bits, 0, len*sizeof(uint32_t));
+	b->len = len;
+
+	return b;
+}
+
 
 /* looks for an empty frame for this page */
 int page_frame_alloc(struct page *p, int user, int write)
@@ -63,7 +86,7 @@ struct page *page_get(struct page_dir *dir, uint32_t addr, int alloc)
 		if (!alloc)
 			return NULL;
 
-		dir->tables[addr/1024] = kmalloc_ap(sizeof(struct page_table), &phys);
+		dir->tables[addr/1024] = arch_kmalloc_ap(sizeof(struct page_table), &phys);
 		memset(dir->tables[addr/1024], 0, sizeof(struct page_table));
 		dir->tables_phys[addr/1024] = phys | PTABLE_PRESENT |
 			PTABLE_WRITABLE | PTABLE_USER;
@@ -100,7 +123,7 @@ void page_fault_handler(struct regs *r)
 	reserved = r->err_code & 0x8;		/* Overwritten CPU-reserved bits of page entry? */
 	id = r->err_code & 0x10;		/* Caused by an instruction fetch? */
 
-	printk("Page fault! (");
+	printk("Page fault! ( ");
 	if (present)
 		printk("present ");
 	if (rw)
@@ -118,9 +141,9 @@ int paging_init(void)
 	uint32_t i = 0;
 	uint32_t mem_end = 0x1000000;
 
-	frames = bitset_create(mem_end/4096);
+	frames = arch_bitset_create(mem_end/4096);
 
-	kern_page_dir = kmalloc_a(sizeof(struct page_dir));
+	kern_page_dir = arch_kmalloc_a(sizeof(struct page_dir));
 	memset(kern_page_dir, 0, sizeof(struct page_dir));
 
 	while (i < alloc_current) {
@@ -128,7 +151,7 @@ int paging_init(void)
 		i += 4096;
 	}
 
-	request_irq(14, page_fault_handler);
+	request_exception(14, page_fault_handler);
 
 	switch_page_dir(kern_page_dir);
 
