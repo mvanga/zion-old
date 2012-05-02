@@ -16,5 +16,8 @@ int arch_main(void)
 	gdt_init();
 	idt_init();
 
+	asm volatile("int $0x25");
+	asm volatile("sti");
+
 	return main();
 }

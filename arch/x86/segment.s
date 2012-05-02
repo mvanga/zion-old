@@ -1,8 +1,10 @@
+.section .text
+
 .globl gdt_write
 .globl idt_write
 
 gdt_write:
-	mov 0x4(%esp), %eax
+	mov 4(%esp), %eax
 	lgdt (%eax)
 	mov $0x10, %ax
 	mov %ax, %ds
@@ -16,17 +18,15 @@ flush:
 
 
 idt_write:
-	mov 0x4(%esp), %eax
+	mov 4(%esp), %eax
 	lidt (%eax)
 	ret
-
-.extern debug
 
 .macro ISR_NOERRCODE n
 	.globl isr\n
 	isr\n:
 		cli
-		push $0
+		push $0xabad1dea
 		push $\n
 		jmp isr_stub
 .endm
@@ -42,25 +42,25 @@ idt_write:
 .extern isr_handler
 isr_stub:
 	pusha
-	mov %ds, %ax
+	push %ds
+	push %es
+	push %fs
+	push %gs
+	mov $0x10, %ax
+	mov %ax, %ds
+	mov %ax, %es
+	mov %ax, %fs
+	mov %ax, %gs
+	mov %esp, %eax
 	push %eax
-	mov $0x10, %eax
-	mov %ax, %ds
-	mov %ax, %es
-	mov %ax, %fs
-	mov %ax, %gs
-
 	call isr_handler
-
 	pop %eax
-	mov %ax, %ds
-	mov %ax, %es
-	mov %ax, %fs
-	mov %ax, %gs
-
+	pop %gs
+	pop %fs
+	pop %es
+	pop %ds
 	popa
 	add $0x8, %esp
-	sti
 	iret
 
 ISR_NOERRCODE 0
@@ -95,3 +95,53 @@ ISR_NOERRCODE 28
 ISR_NOERRCODE 29
 ISR_NOERRCODE 30
 ISR_NOERRCODE 31
+
+.macro IRQ num, irqnum
+	.globl irq\num
+	irq\num:
+		cli
+		push $0xabad1dea
+		push $\irqnum
+		jmp irq_stub
+.endm
+
+.extern irq_handler
+irq_stub:
+	pusha
+	push %ds
+	push %es
+	push %fs
+	push %gs
+	mov $0x10, %ax
+	mov %ax, %ds
+	mov %ax, %es
+	mov %ax, %fs
+	mov %ax, %gs
+	mov %esp, %eax
+	push %eax
+	call irq_handler
+	pop %eax
+	pop %gs
+	pop %fs
+	pop %es
+	pop %ds
+	popa
+	add $0x8, %esp
+	iret
+
+IRQ 0, 32
+IRQ 1, 33
+IRQ 2, 34
+IRQ 3, 35
+IRQ 4, 36
+IRQ 5, 37
+IRQ 6, 38
+IRQ 7, 39
+IRQ 8, 40
+IRQ 9, 41
+IRQ 10, 42
+IRQ 11, 43
+IRQ 12, 44
+IRQ 13, 45
+IRQ 14, 46
+IRQ 15, 47

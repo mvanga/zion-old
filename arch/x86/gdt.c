@@ -1,4 +1,5 @@
 #include <asm/segment.h>
+#include <zion/types.h>
 
 extern void gdt_write(uint32_t);
 
@@ -20,14 +21,12 @@ void gdt_set(int32_t num, uint32_t base, uint32_t limit, uint8_t access, uint8_t
 
 void gdt_init(void)
 {
-	gdt_ptr.limit = (sizeof(struct gdt_entry) * 5) - 1;
+	gdt_ptr.limit = (sizeof(uint64_t) * 3) - 1;
 	gdt_ptr.base  = (uint32_t)&gdt_table;
 
 	gdt_set(0, 0, 0, 0, 0);                // Null segment
 	gdt_set(1, 0, 0xFFFFFFFF, 0x9A, 0xCF); // Code segment
 	gdt_set(2, 0, 0xFFFFFFFF, 0x92, 0xCF); // Data segment
-	gdt_set(3, 0, 0xFFFFFFFF, 0xFA, 0xCF); // User mode code segment
-	gdt_set(4, 0, 0xFFFFFFFF, 0xF2, 0xCF); // User mode data segment
 
 	gdt_write((uint32_t)&gdt_ptr);
 }

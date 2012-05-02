@@ -1,3 +1,5 @@
+.section .text
+
 .equ MBOOT_PAGE_ALIGN,    1<<0
 .equ MBOOT_MEM_INFO,      1<<1
 .equ MBOOT_HEADER_MAGIC,  0x1BADB002
@@ -25,7 +27,12 @@ mboot:
 .extern main
 
 start:
+	mov $_sys_stack, %esp
 	cli
 	call arch_main
 loop:
 	jmp loop
+
+
+.section .bss
+	.lcomm _sys_stack, 8192

@@ -14,6 +14,23 @@ SECTIONS
 	. = ALIGN(4096);
 	__text_end = .;
 
+	. = ALIGN(16);
+	__init_begin = .;
+	.text.init : {
+		*(.module0.init);
+		*(.module1.init);
+		*(.module2.init);
+	}
+	__init_end = .;
+
+	__exit_begin = .;
+	.text.exit : {   
+		*(.module0.exit);
+		*(.module1.exit);
+		*(.module2.exit);
+	}
+	__exit_end = .;
+
 	__data_start = .;
 	.data : {
 		*(.data)
