@@ -16,7 +16,6 @@ int timer_init(void)
 {
 	uint32_t divisor;
 
-	printk("init timer to %d Hz\n", HZ);
 	request_irq(0, &timer_handler);
 
 	divisor = 1193180 / HZ;
