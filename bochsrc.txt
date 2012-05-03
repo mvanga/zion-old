@@ -1,0 +1,2 @@
+boot: floppy
+floppya: 1_44="img/floppy.img", status=inserted

@@ -1,22 +1,21 @@
-/* Link.ld -- Linker script for the kernel - ensure everything goes in the */
-/*            Correct place.  */
-/*            Original file taken from Bran's Kernel Development */
-/*            tutorials: http://www.osdever.net/bkerndev/index.php. */
-
 ENTRY(start)
 
 SECTIONS
 {
-	__text_start = .;
-	.text 0x100000 : {
-		*(.text)
+	. = 0x100000;
+	.setup : {
+		*(.setup)
 	}
-	. = ALIGN(4096);
-	__text_end = .;
 
-	. = ALIGN(16);
-	__init_begin = .;
-	.text.init : {
+	. += 0xC0000000;
+
+	.text : AT(ADDR(.text) - 0xC0000000) {
+		*(.text)
+		__text_end = . - 0xC0000000;
+	}
+
+	.text.init : AT(ADDR(.text.init) - 0xC0000000) {
+		__init_begin = .;
 		__early_init_begin = .;
 		*(.module0.init);
 		__early_init_end = .;
@@ -29,11 +28,11 @@ SECTIONS
 		__module_init_begin = .;
 		*(.module3.init);
 		__module_init_end = .;
+		__init_end = .;
 	}
-	__init_end = .;
 
-	__exit_begin = .;
-	.text.exit : {   
+	.text.exit : AT(ADDR(.text.exit) - 0xC0000000) {   
+		__exit_begin = .;
 		__arch_exit_begin = .;
 		*(.module1.exit);
 		__arch_exit_end = .;
@@ -43,23 +42,21 @@ SECTIONS
 		__module_exit_begin = .;
 		*(.module3.exit);
 		__module_exit_end = .;
+		__exit_end = .;
 	}
-	__exit_end = .;
 
-	__data_start = .;
-	.data : {
+	.data ALIGN(4096) : AT(ADDR(.data) - 0xC0000000) {
 		*(.data)
 		*(.rodata)
+		__data_end = . - 0xC0000000;
 	}
 	. = ALIGN(4096);
-	__data_end = .;
 
-	__bss_start = .;
-	.bss : {
+	.bss ALIGN(4096) : AT(ADDR(.bss) - 0xC0000000) {
 		bss = .;
 		*(.bss)
+		__bss_end = . - 0xC0000000;
 	}
 	. = ALIGN(4096);
-	__bss_end = .;
 	__alloc_start = .;
 }

@@ -163,3 +163,50 @@ int paging_init(void)
 
 	return 0;
 }
+
+/* Declare the page directory and a page table, both 4kb-aligned */
+unsigned long kernelpagedir[1024] __attribute__ ((aligned (4096)));
+unsigned long lowpagetable[1024] __attribute__ ((aligned (4096)));
+
+/*
+ * This function fills the page directory and the page table,
+ * then enables paging by putting the address of the page directory
+ * into the CR3 register and setting the 31st bit into the CR0 one
+ */
+void paging_init2()
+{
+	/* Pointers to the page directory and the page table */
+	void *kernelpagedir_ptr = 0;
+	void *lowpagetable_ptr = 0;
+	int k = 0;
+
+	/*
+	 * Translate the page directory from virtual address to physical
+	 * address. Also for the page table.
+	 */
+	kernelpagedir_ptr = (char *)kernelpagedir + 0x40000000;
+	lowpagetable_ptr = (char *)lowpagetable + 0x40000000;
+
+	/* map lowest 4MB and clear page directory */
+	for (k = 0; k < 1024; k++) {
+		lowpagetable[k] = (k * 4096) | 0x3;
+		kernelpagedir[k] = 0;
+	}
+
+	/*
+	 * Fills the addresses 0...4MB and 3072MB...3076MB of the page directory
+	 * with the same page table
+	 */
+	kernelpagedir[0] = (unsigned long)lowpagetable_ptr | 0x3;
+	kernelpagedir[768] = (unsigned long)lowpagetable_ptr | 0x3;
+
+	/*
+	 * Copies the address of the page directory into the CR3 register and,
+	 * finally, enables paging!
+	 */
+	asm volatile ("mov %0, %%eax\n"
+		"mov %%eax, %%cr3\n"
+		"mov %%cr0, %%eax\n"
+		"orl $0x80000000, %%eax\n"
+		"mov %%eax, %%cr0\n" :: "m" (kernelpagedir_ptr));
+}
