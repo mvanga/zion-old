@@ -3,7 +3,7 @@
 #include <zion/io.h>
 
 /* Simple VGA output */
-#define VGABASE		(0xb8000)
+#define VGABASE		(0xc00b8000)
 
 static int max_ypos = 25;
 static int max_xpos = 80;

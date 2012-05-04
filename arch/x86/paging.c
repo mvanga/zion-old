@@ -210,3 +210,8 @@ void paging_init2()
 		"orl $0x80000000, %%eax\n"
 		"mov %%eax, %%cr0\n" :: "m" (kernelpagedir_ptr));
 }
+
+void paging_cleanup(void)
+{
+	kernelpagedir[0] = 0;
+}

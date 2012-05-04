@@ -11,7 +11,7 @@ SECTIONS
 
 	.text : AT(ADDR(.text) - 0xC0000000) {
 		*(.text)
-		__text_end = . - 0xC0000000;
+		__text_end = .;
 	}
 
 	.text.init : AT(ADDR(.text.init) - 0xC0000000) {
@@ -48,14 +48,14 @@ SECTIONS
 	.data ALIGN(4096) : AT(ADDR(.data) - 0xC0000000) {
 		*(.data)
 		*(.rodata)
-		__data_end = . - 0xC0000000;
+		__data_end = .;
 	}
 	. = ALIGN(4096);
 
 	.bss ALIGN(4096) : AT(ADDR(.bss) - 0xC0000000) {
 		bss = .;
 		*(.bss)
-		__bss_end = . - 0xC0000000;
+		__bss_end = .;
 	}
 	. = ALIGN(4096);
 	__alloc_start = .;

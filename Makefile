@@ -16,6 +16,9 @@ ASFLAGS=
 
 all: $(obj-y) link bin
 
+arch/x86/boot2.o:
+	nasm -felf -o arch/x86/boot2.o arch/x86/boot2.s
+
 clean:
 	rm -rf $(obj-y) $(NAME) $(NAME).bin
 
