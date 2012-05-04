@@ -25,9 +25,12 @@ struct page_table {
 struct page_dir {
 	struct page_table *tables[1024];
 	uint32_t tables_phys[1024];
-	uint32_t dir_phys;
+	uint32_t dir_phys_addr;
+	uint32_t tables_phys_addr;
 };
 
+void paging_init_pre(void);
 int paging_init(void);
+void paging_pre_cleanup(void);
 
 #endif

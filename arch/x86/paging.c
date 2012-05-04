@@ -13,7 +13,8 @@ struct bitset *frames;
 /* The current page directory */
 struct page_dir *curr_page_dir;
 /* The page directory for the kernel */
-struct page_dir *kern_page_dir;
+struct page_dir kern_page_dir __attribute__ ((aligned (4096)));
+struct page_table page_table_low __attribute__ ((aligned (4096)));
 
 extern uint32_t alloc_current;
 
@@ -99,7 +100,7 @@ void switch_page_dir(struct page_dir *dir)
 	uint32_t cr0;
 
 	curr_page_dir = dir;
-	asm volatile("mov %0, %%cr3":: "r"(&dir->tables_phys));
+	asm volatile("mov %0, %%cr3":: "r"(dir->tables_phys_addr));
 	asm volatile("mov %%cr0, %0": "=r"(cr0));
 	cr0 |= 0x80000000; // Enable paging!
 	asm volatile("mov %0, %%cr0":: "r"(cr0));
@@ -142,6 +143,7 @@ void page_fault_handler(struct regs *r)
 	for (;;);
 }
 
+#if 0
 int paging_init(void)
 {
 	uint32_t i = 0;
@@ -163,20 +165,18 @@ int paging_init(void)
 
 	return 0;
 }
-
-/* Declare the page directory and a page table, both 4kb-aligned */
-unsigned long kernelpagedir[1024] __attribute__ ((aligned (4096)));
-unsigned long lowpagetable[1024] __attribute__ ((aligned (4096)));
+#endif
 
 /*
  * This function fills the page directory and the page table,
  * then enables paging by putting the address of the page directory
  * into the CR3 register and setting the 31st bit into the CR0 one
  */
-void paging_init2()
+void paging_init_pre(void)
 {
 	/* Pointers to the page directory and the page table */
-	void *kernelpagedir_ptr = 0;
+	void *kernelpagedir_ptr  = 0;
+	void *kpaged_tbl_ptr = 0;
 	void *lowpagetable_ptr = 0;
 	int k = 0;
 
@@ -184,34 +184,37 @@ void paging_init2()
 	 * Translate the page directory from virtual address to physical
 	 * address. Also for the page table.
 	 */
-	kernelpagedir_ptr = (char *)kernelpagedir + 0x40000000;
-	lowpagetable_ptr = (char *)lowpagetable + 0x40000000;
+	kernelpagedir_ptr = (char *)&kern_page_dir + 0x40000000;
+	kpaged_tbl_ptr = (char *)&kern_page_dir.tables_phys + 0x40000000;
+	lowpagetable_ptr = (char *)&page_table_low + 0x40000000;
 
 	/* map lowest 4MB and clear page directory */
+	kern_page_dir.dir_phys_addr = (uint32_t)kernelpagedir_ptr;
+	kern_page_dir.tables_phys_addr = (uint32_t)kpaged_tbl_ptr;
 	for (k = 0; k < 1024; k++) {
-		lowpagetable[k] = (k * 4096) | 0x3;
-		kernelpagedir[k] = 0;
+		page_table_low.pages[k].frame = (k * 4096) | 0x3;
+		kern_page_dir.tables[k] = 0;
+		kern_page_dir.tables_phys[k] = 0;
 	}
 
 	/*
 	 * Fills the addresses 0...4MB and 3072MB...3076MB of the page directory
 	 * with the same page table
 	 */
-	kernelpagedir[0] = (unsigned long)lowpagetable_ptr | 0x3;
-	kernelpagedir[768] = (unsigned long)lowpagetable_ptr | 0x3;
+	kern_page_dir.tables_phys[0] = (uint32_t)lowpagetable_ptr | 0x3;
+	kern_page_dir.tables_phys[768] = (uint32_t)lowpagetable_ptr | 0x3;
+	kern_page_dir.tables[0] = &page_table_low;
+	kern_page_dir.tables[768] = &page_table_low;
 
 	/*
 	 * Copies the address of the page directory into the CR3 register and,
 	 * finally, enables paging!
 	 */
-	asm volatile ("mov %0, %%eax\n"
-		"mov %%eax, %%cr3\n"
-		"mov %%cr0, %%eax\n"
-		"orl $0x80000000, %%eax\n"
-		"mov %%eax, %%cr0\n" :: "m" (kernelpagedir_ptr));
+	switch_page_dir(&kern_page_dir);
 }
 
-void paging_cleanup(void)
+void paging_pre_cleanup(void)
 {
-	kernelpagedir[0] = 0;
+	kern_page_dir.tables_phys[0] = 0;
+	kern_page_dir.tables[0] = 0;
 }
