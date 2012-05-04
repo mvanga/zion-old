@@ -1,7 +1,10 @@
 #include <zion/console.h>
 #include <zion/io.h>
+#include <asm/alloc.h>
 #include <zion/module.h>
+#include <zion/stdio.h>
 
+#include <asm/mm.h>
 #include <asm/segment.h>
 #include <asm/paging.h>
 
@@ -17,11 +20,12 @@ int arch_main(void)
 	paging_init_pre();
 	/* get rid of trickgdt and put a proper one */
 	gdt_init();
+	mm_init();
+	paging_init();
+	/* now we can setup interrupts */
+	idt_init();
 	/* unmap the first 4mb of pages */
 	paging_init_post();
-
-	/* now we can happily setup interrupts */
-	idt_init();
 
 	/* we can safely enable interrupts here */
 	asm volatile("sti");
@@ -29,7 +33,8 @@ int arch_main(void)
 	/* call the arch initcalls */
 	do_initcalls_arch();
 
-//	paging_init();
+	printk("alloc_current = %p\n", alloc_current);
+
 
 	return main();
 }

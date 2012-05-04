@@ -91,6 +91,12 @@ struct page *page_get(struct page_dir *dir, uint32_t addr, int alloc)
 		memset(dir->tables[addr/1024], 0, sizeof(struct page_table));
 		dir->tables_phys[addr/1024] = phys | PTABLE_PRESENT |
 			PTABLE_WRITABLE | PTABLE_USER;
+	} else {
+		uint32_t frame;
+
+		frame = dir->tables[addr/1024]->pages[addr%1024].frame;
+		if (!bit_test(frames, frame >> 12))
+			bit_set(frames, frame >> 12);
 	}
 	return &dir->tables[addr/1024]->pages[addr%1024];
 }
@@ -143,7 +149,6 @@ void page_fault_handler(struct regs *r)
 	for (;;);
 }
 
-#if 0
 int paging_init(void)
 {
 	uint32_t i = 0;
@@ -151,6 +156,12 @@ int paging_init(void)
 
 	frames = arch_bitset_create(mem_end/4096);
 
+	for (i = 0; i < 1024; i++)
+		page_get(&kern_page_dir, i << 12, 0);
+
+	bitset_print(frames);
+
+#if 0
 	kern_page_dir = arch_kmalloc_a(sizeof(struct page_dir));
 	memset(kern_page_dir, 0, sizeof(struct page_dir));
 
@@ -158,14 +169,12 @@ int paging_init(void)
 		page_frame_alloc(page_get(kern_page_dir, i, 1), 0, 0);
 		i += 4096;
 	}
+#endif
 
-	request_exception(14, page_fault_handler);
-
-	switch_page_dir(kern_page_dir);
+//	switch_page_dir(kern_page_dir);
 
 	return 0;
 }
-#endif
 
 /*
  * This function fills the page directory and the page table,
@@ -217,4 +226,5 @@ void paging_init_post(void)
 {
 	kern_page_dir.tables_phys[0] = 0;
 	kern_page_dir.tables[0] = 0;
+	request_exception(14, page_fault_handler);
 }

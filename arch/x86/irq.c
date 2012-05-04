@@ -64,6 +64,8 @@ void isr_handler(struct regs *regs)
 	dump(regs);
 	if (irq_handlers[regs->int_no])
 		(irq_handlers[regs->int_no])(regs);
+	else
+		printk("no handler available\n");
 	for (;;);
 }
 

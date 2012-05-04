@@ -48,11 +48,9 @@ void arch_kfree(void *ptr __attribute__((unused)))
 }
 
 
-int mm_arch_init(void)
+int mm_init(void)
 {
 	alloc_current = (uint32_t)&__alloc_start;
 
 	return 0;
 }
-
-arch_init(mm_arch_init)
