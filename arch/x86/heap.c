@@ -19,6 +19,9 @@ int heap_init(void)
 	for (i = curr; i < KHEAP_END; i += 4096)
 		page_frame_alloc(page_get(&kern_page_dir, i, 0), 1, 1);
 
+	for (i = curr; i < KHEAP_END; i++)
+		*((char *)i) = 0;
+
 	printk("mapped pages -> frames for heap from %p to %08x\n", curr, KHEAP_END);
 
 	/* create_heap(curr, KHEAP_END, KHEAP_MAX, super=0, writable=1) */
