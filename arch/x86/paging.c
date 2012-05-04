@@ -92,11 +92,11 @@ struct page *page_get(struct page_dir *dir, uint32_t addr, int alloc)
 		dir->tables_phys[addr/1024] = phys | PTABLE_PRESENT |
 			PTABLE_WRITABLE | PTABLE_USER;
 	} else {
-		uint32_t frame;
+		uint32_t frame_idx;
 
-		frame = dir->tables[addr/1024]->pages[addr%1024].frame;
-		if (!bit_test(frames, frame >> 12))
-			bit_set(frames, frame >> 12);
+		frame_idx = dir->tables[addr/1024]->pages[addr%1024].frame >> 12;
+		if (!bit_test(frames, frame_idx))
+			bit_set(frames, frame_idx);
 	}
 	return &dir->tables[addr/1024]->pages[addr%1024];
 }
