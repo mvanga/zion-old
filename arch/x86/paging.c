@@ -175,7 +175,7 @@ int paging_init(void)
 void paging_init_pre(void)
 {
 	/* Pointers to the page directory and the page table */
-	void *kernelpagedir_ptr  = 0;
+	void *kpaged_ptr  = 0;
 	void *kpaged_tbl_ptr = 0;
 	void *lowpagetable_ptr = 0;
 	int k = 0;
@@ -184,12 +184,12 @@ void paging_init_pre(void)
 	 * Translate the page directory from virtual address to physical
 	 * address. Also for the page table.
 	 */
-	kernelpagedir_ptr = (char *)&kern_page_dir + 0x40000000;
+	kpaged_ptr = (char *)&kern_page_dir + 0x40000000;
 	kpaged_tbl_ptr = (char *)&kern_page_dir.tables_phys + 0x40000000;
 	lowpagetable_ptr = (char *)&page_table_low + 0x40000000;
 
 	/* map lowest 4MB and clear page directory */
-	kern_page_dir.dir_phys_addr = (uint32_t)kernelpagedir_ptr;
+	kern_page_dir.dir_phys_addr = (uint32_t)kpaged_ptr;
 	kern_page_dir.tables_phys_addr = (uint32_t)kpaged_tbl_ptr;
 	for (k = 0; k < 1024; k++) {
 		page_table_low.pages[k].frame = (k * 4096) | 0x3;
@@ -213,7 +213,7 @@ void paging_init_pre(void)
 	switch_page_dir(&kern_page_dir);
 }
 
-void paging_pre_cleanup(void)
+void paging_init_post(void)
 {
 	kern_page_dir.tables_phys[0] = 0;
 	kern_page_dir.tables[0] = 0;

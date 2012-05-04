@@ -18,7 +18,7 @@ int arch_main(void)
 	/* get rid of trickgdt and put a proper one */
 	gdt_init();
 	/* unmap the first 4mb of pages */
-	paging_pre_cleanup();
+	paging_init_post();
 
 	/* now we can happily setup interrupts */
 	idt_init();
