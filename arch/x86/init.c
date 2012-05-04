@@ -21,7 +21,7 @@ int arch_main(void)
 	/* get rid of trickgdt and put a proper one */
 	gdt_init();
 	mm_init();
-	paging_init();
+	paging_alloc_init();
 	/* now we can setup interrupts */
 	idt_init();
 	/* unmap the first 4mb of pages */
@@ -32,9 +32,6 @@ int arch_main(void)
 
 	/* call the arch initcalls */
 	do_initcalls_arch();
-
-	printk("alloc_current = %p\n", alloc_current);
-
 
 	return main();
 }

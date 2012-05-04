@@ -108,7 +108,8 @@ void switch_page_dir(struct page_dir *dir)
 	curr_page_dir = dir;
 	asm volatile("mov %0, %%cr3":: "r"(dir->tables_phys_addr));
 	asm volatile("mov %%cr0, %0": "=r"(cr0));
-	cr0 |= 0x80000000; // Enable paging!
+	/* Enable paging! */
+	cr0 |= 0x80000000;
 	asm volatile("mov %0, %%cr0":: "r"(cr0));
 }
 
@@ -149,7 +150,7 @@ void page_fault_handler(struct regs *r)
 	for (;;);
 }
 
-int paging_init(void)
+int paging_alloc_init(void)
 {
 	uint32_t i = 0;
 	uint32_t mem_end = 0x1000000;
@@ -158,20 +159,6 @@ int paging_init(void)
 
 	for (i = 0; i < 1024; i++)
 		page_get(&kern_page_dir, i << 12, 0);
-
-	bitset_print(frames);
-
-#if 0
-	kern_page_dir = arch_kmalloc_a(sizeof(struct page_dir));
-	memset(kern_page_dir, 0, sizeof(struct page_dir));
-
-	while (i < alloc_current) {
-		page_frame_alloc(page_get(kern_page_dir, i, 1), 0, 0);
-		i += 4096;
-	}
-#endif
-
-//	switch_page_dir(kern_page_dir);
 
 	return 0;
 }

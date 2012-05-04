@@ -3,8 +3,8 @@
 /* Knuth's TAOCP section 3.6 */
 #define	M	((1U<<31) -1)
 #define	A	48271
-#define	Q	44488		// M/A
-#define	R	3399		// M%A; R < Q !!!
+#define	Q	44488		/* M/A */
+#define	R	3399		/* M%A; R < Q !!! */
 
 int rand_r(unsigned int* seed)
 {

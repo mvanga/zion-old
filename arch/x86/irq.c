@@ -71,8 +71,6 @@ void isr_handler(struct regs *regs)
 
 void irq_handler(struct regs *regs)
 {
-//	printk("IRQ %u\n", regs->int_no);
-//	dump(regs);
 	if (irq_handlers[regs->int_no])
 		(irq_handlers[regs->int_no])(regs);
 	if (regs->int_no >= 40)

@@ -30,7 +30,7 @@ struct page_dir {
 };
 
 void paging_init_pre(void);
-int paging_init(void);
+int paging_alloc_init(void);
 void paging_init_post(void);
 
 #endif

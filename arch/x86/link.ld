@@ -58,5 +58,6 @@ SECTIONS
 		__bss_end = .;
 	}
 	. = ALIGN(4096);
-	__alloc_start = . - 0xC0000000;
+	__alloc_start_phys = . - 0xC0000000;
+	__alloc_start = .;
 }

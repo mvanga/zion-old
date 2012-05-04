@@ -24,9 +24,9 @@ void gdt_init(void)
 	gdt_ptr.limit = (sizeof(uint64_t) * 3) - 1;
 	gdt_ptr.base  = (uint32_t)&gdt_table;
 
-	gdt_set(0, 0, 0, 0, 0);                // Null segment
-	gdt_set(1, 0, 0xFFFFFFFF, 0x9A, 0xCF); // Code segment
-	gdt_set(2, 0, 0xFFFFFFFF, 0x92, 0xCF); // Data segment
+	gdt_set(0, 0, 0, 0, 0);			/* Null segment */ 
+	gdt_set(1, 0, 0xFFFFFFFF, 0x9A, 0xCF);	/* Code segment */ 
+	gdt_set(2, 0, 0xFFFFFFFF, 0x92, 0xCF);	/* Data segment */ 
 
 	gdt_write((uint32_t)&gdt_ptr);
 }
