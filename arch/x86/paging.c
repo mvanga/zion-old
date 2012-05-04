@@ -84,6 +84,7 @@ struct page *page_get(struct page_dir *dir, uint32_t addr, int alloc)
 	if (!dir->tables[addr/1024]) {
 		uint32_t phys;
 
+		printk("!\n");
 		if (!alloc)
 			return NULL;
 
@@ -130,8 +131,8 @@ void page_fault_handler(struct regs *r)
 
 	/* The error code gives us details of what happened. */
 	present   = !(r->err_code & 0x1);	/* Page not present */
-	rw = r->err_code & 0x2;		/* Write operation? */
-	us = r->err_code & 0x4;		/* Processor was in user-mode? */
+	rw = r->err_code & 0x2;			/* Write operation? */
+	us = r->err_code & 0x4;			/* Processor was in user-mode? */
 	reserved = r->err_code & 0x8;		/* Overwritten CPU-reserved bits of page entry? */
 	id = r->err_code & 0x10;		/* Caused by an instruction fetch? */
 

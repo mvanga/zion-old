@@ -2,6 +2,8 @@
 #include <zion/types.h>
 #include <zion/stdio.h>
 
+#include <asm/paging.h>
+
 extern uint32_t __alloc_start_phys;
 extern uint32_t __alloc_start;
 uint32_t alloc_current_phys;

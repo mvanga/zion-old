@@ -29,8 +29,14 @@ struct page_dir {
 	uint32_t tables_phys_addr;
 };
 
+extern struct page_dir kern_page_dir;
+
 void paging_init_pre(void);
 int paging_alloc_init(void);
 void paging_init_post(void);
+
+int page_frame_alloc(struct page *p, int user, int write);
+void page_frame_free(struct page *page);
+struct page *page_get(struct page_dir *dir, uint32_t addr, int alloc);
 
 #endif
