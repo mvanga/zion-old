@@ -15,7 +15,6 @@ int arch_main(void)
 	gdt_init();
 	paging_cleanup();
 	do_initcalls_early();
-	printk("Hello Higher Half World: %p\n", &arch_main);
 	idt_init();
 
 	/* we can safely enable interrupts now */

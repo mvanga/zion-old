@@ -61,6 +61,7 @@ void dump(struct regs *r)
 void isr_handler(struct regs *regs)
 {
 	printk("caught exception: 0x%X error=%p\n", regs->int_no, regs->err_code);
+	dump(regs);
 	if (irq_handlers[regs->int_no])
 		(irq_handlers[regs->int_no])(regs);
 	for (;;);
