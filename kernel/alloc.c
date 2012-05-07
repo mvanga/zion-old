@@ -1,3 +1,4 @@
+#include <zion/alloc.h>
 #include <zion/types.h>
 #include <zion/stdlib.h>
 
@@ -15,13 +16,6 @@ struct alloc_area {
 	/* start of data */
 	char data[1];
 } __attribute__((packed));
-
-struct heap {
-	struct alloc_area *alloc;
-	uint32_t start;
-	uint32_t brk;
-	uint32_t max;
-};
 
 struct alloc_area *alloc_init(void *start, uint32_t size)
 {
@@ -77,13 +71,25 @@ void alloc_area_merge(struct alloc_area *area, struct alloc_area *main)
 	}
 }
 
-void *alloc(struct alloc_area *area, int size)
+void *alloc(struct alloc_area *area, int size, uint32_t flags)
 {
+	uint32_t start;
+	void *ret;
 	struct alloc_area *t;
 
 	t = area;
 	while (t) {
-		if (t->size >= (uint32_t)size)
+		if (t->size >= (uint32_t)size && flags & ALLOC_ALIGN) {
+			start = (uint32_t)t->data;
+			if (start & 0xfff) {
+				start &= 0xfffff000;
+				start += 4096;
+			}
+			if (start < (uint32_t)(t->data + t->size)) {
+				ret = alloc_area_split(t, start - (uint32_t)t->data);
+				return (char *)ret + (start - (uint32_t)t->data);
+			}
+		} else if (t->size >= (uint32_t)size)
 			return alloc_area_split(t, size);
 		t = t->next;
 	}
@@ -93,15 +99,25 @@ void *alloc(struct alloc_area *area, int size)
 void free(struct alloc_area *area, void *ptr)
 {
 	struct alloc_area *t;
+	uint32_t addr;
 
 	t = (struct alloc_area *)((char *)ptr - BLOCKSIZE);
-	if ((t->flags & ALLOC_MAGIC_MASK) != ALLOC_MAGIC)
+	t = area;
+	addr = (uint32_t)ptr;
+	while (t) {
+		if (addr >= (uint32_t)t->data && addr < ((uint32_t)t->data + t->size))
+			break;
+		t = t->next;
+	}
+	if (!t || (t->flags & ALLOC_MAGIC_MASK) != ALLOC_MAGIC)
 		return;
 
 	alloc_area_merge(t, area);
 }
 
-struct heap kern_heap;
+struct heap kern_heap = {
+	.valid = 0,
+};
 
 void kernel_heap_init(uint32_t start, uint32_t brk, uint32_t max)
 {
@@ -110,11 +126,14 @@ void kernel_heap_init(uint32_t start, uint32_t brk, uint32_t max)
 	kern_heap.max = max;
 	kern_heap.alloc = (struct alloc_area *)((char *)start);
 	kern_heap.alloc = alloc_init((void *)start, brk - start);
+	kern_heap.valid = 1;
 }
 
-void *kmalloc(uint32_t size)
+void *kmalloc(uint32_t size, uint32_t flags)
 {
-	return alloc(kern_heap.alloc, size);
+	if (flags & ALLOC_KERN)
+		return alloc(kern_heap.alloc, size, flags);
+	return NULL;
 }
 
 void kfree(void *p)

@@ -3,6 +3,7 @@
 #include <zion/stdio.h>
 #include <zion/stdlib.h>
 #include <zion/string.h>
+#include <zion/alloc.h>
 
 #include <asm/irq.h>
 #include <asm/paging.h>
@@ -88,7 +89,9 @@ struct page *page_get(struct page_dir *dir, uint32_t addr, int alloc)
 		if (!alloc)
 			return NULL;
 
-		dir->tables[addr/1024] = arch_kmalloc_ap(sizeof(struct page_table), &phys);
+		dir->tables[addr/1024] = kmalloc(sizeof(struct page_table),
+			ALLOC_KERN | ALLOC_ALIGN);
+		phys = virt_to_phys(dir->tables[addr/1024]);
 		memset(dir->tables[addr/1024], 0, sizeof(struct page_table));
 		dir->tables_phys[addr/1024] = phys | PTABLE_PRESENT |
 			PTABLE_WRITABLE | PTABLE_USER;
@@ -219,6 +222,12 @@ void paging_init_post(void)
 
 uint32_t virt_to_phys(void *vaddr)
 {
-	struct page *p = page_get(&kern_page_dir, (uint32_t)vaddr, 0);
-	return (p->frame & PAGE_FRAME_ADDR_MASK) | ((uint32_t)vaddr & 0xfff);
+	struct page *p;
+	
+	if (kern_heap.valid) {
+		p = page_get(&kern_page_dir, (uint32_t)vaddr, 0);
+		return (p->frame & PAGE_FRAME_ADDR_MASK) | ((uint32_t)vaddr & 0xfff);
+	} else {
+		return (uint32_t)vaddr - 0xc0000000;
+	}
 }

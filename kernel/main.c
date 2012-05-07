@@ -9,11 +9,11 @@
 int main(void)
 {
 	do_initcalls_core();
-	int *a = kmalloc(sizeof(int));
+	int *a = kmalloc(sizeof(int), ALLOC_KERN | ALLOC_ALIGN);
 	*a = 5;
 	printk("%p %d\n", a, *a);
 	kfree(a);
-	a = kmalloc(sizeof(int));
+	a = kmalloc(sizeof(int), ALLOC_KERN);
 	*a = 10;
 	printk("%p %d\n", a, *a);
 	while (1) {
