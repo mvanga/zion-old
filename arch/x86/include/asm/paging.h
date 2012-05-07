@@ -41,4 +41,7 @@ struct page *page_get(struct page_dir *dir, uint32_t addr, int alloc);
 
 uint32_t virt_to_phys(void *vaddr);
 
+struct page_dir *page_dir_clone(struct page_dir *src);
+void kern_page_dir_clone(void);
+
 #endif

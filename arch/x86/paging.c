@@ -18,6 +18,7 @@ struct page_dir kern_page_dir __attribute__ ((aligned (4096)));
 struct page_table page_table_low __attribute__ ((aligned (4096)));
 
 extern uint32_t alloc_current;
+extern void phys_frame_clone(uint32_t src, uint32_t dest);
 
 struct bitset *arch_bitset_create(int nbits)
 {
@@ -220,14 +221,73 @@ void paging_init_post(void)
 	request_exception(14, page_fault_handler);
 }
 
+void kern_page_dir_clone(void)
+{
+	curr_page_dir = page_dir_clone(&kern_page_dir);
+	switch_page_dir(curr_page_dir);
+	printk("%08x\n", curr_page_dir->tables_phys_addr);
+}
+
 uint32_t virt_to_phys(void *vaddr)
 {
 	struct page *p;
 	
 	if (kern_heap.valid) {
-		p = page_get(&kern_page_dir, (uint32_t)vaddr, 0);
+		p = page_get(curr_page_dir, (uint32_t)vaddr, 0);
 		return (p->frame & PAGE_FRAME_ADDR_MASK) | ((uint32_t)vaddr & 0xfff);
 	} else {
 		return (uint32_t)vaddr - 0xc0000000;
 	}
+}
+
+struct page_table *page_table_clone(struct page_table *src, uint32_t *phys)
+{
+	int i;
+	struct page_table *t;
+
+	t = kmalloc(sizeof(struct page_table), ALLOC_KERN | ALLOC_ALIGN);
+	if (t) {
+		printk("failed to clone page table\n");
+		for (;;);
+	}
+	*phys = virt_to_phys(t);
+	memset(t, 0, sizeof(struct page_table));
+
+	for (i = 0; i < 1024; i++) {
+		if (!src->pages[i].frame)
+			continue;
+		page_frame_alloc(&t->pages[i], 1, 0);
+		t->pages[i].frame |= src->pages[i].frame & ~PAGE_FRAME_ADDR_MASK;
+		phys_frame_clone(src->pages[i].frame << 12, t->pages[i].frame << 12);
+	}
+	return t;
+}
+
+struct page_dir *page_dir_clone(struct page_dir *src)
+{
+	int i;
+	uint32_t phys;
+	struct page_dir *new;
+
+	new = kmalloc(sizeof(struct page_dir), ALLOC_KERN | ALLOC_ALIGN);
+	if (!new) {
+		printk("failed to clone directory\n");
+		for (;;);
+	}
+	memset(new, 0, sizeof(struct page_dir));
+	phys = virt_to_phys(&new->tables_phys);
+	new->tables_phys_addr = phys;
+
+	for (i = 0; i < 1024; i++) {
+		if (!src->tables[i])
+			continue;
+		if (kern_page_dir.tables[i] == src->tables[i]) {
+			new->tables[i] = src->tables[i];
+			new->tables_phys[i] = src->tables_phys[i];
+		} else {
+			new->tables[i] = page_table_clone(src->tables[i], &phys);
+			new->tables_phys[i] = phys | 0x7;
+		}
+	}
+	return new;
 }

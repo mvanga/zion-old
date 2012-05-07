@@ -2,6 +2,7 @@
 
 .globl gdt_write
 .globl idt_write
+.globl phys_frame_clone
 
 gdt_write:
 	mov 4(%esp), %eax
@@ -20,6 +21,36 @@ flush:
 idt_write:
 	mov 4(%esp), %eax
 	lidt (%eax)
+	ret
+
+phys_frame_clone:
+	push %ebx
+	pushf
+	cli
+
+	mov 12(%esp), %ebx
+	mov 16(%esp), %ecx
+
+	mov %cr0, %edx
+	and $0x7fffffff, %edx
+	mov %edx, %cr0
+
+	mov $1024, %edx
+
+copy_loop:
+	mov (%ebx), %eax
+	mov %eax, (%ecx)
+	add $0x4, %ebx
+	add $0x4, %ecx
+	dec %edx
+	jnz copy_loop
+
+	mov %cr0, %edx
+	or $0x80000000, %edx
+	mov %edx, %cr0
+
+	popf
+	pop %ebx
 	ret
 
 .macro ISR_NOERRCODE n

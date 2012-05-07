@@ -30,6 +30,8 @@ int arch_main(void)
 
 	heap_init();
 
+	kern_page_dir_clone();
+
 	/* we can safely enable interrupts here */
 	asm volatile("sti");
 
