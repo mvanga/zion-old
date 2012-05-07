@@ -4,6 +4,7 @@
 #include <asm/paging.h>
 #include <asm/mm.h>
 #include <zion/stdio.h>
+#include <zion/alloc.h>
 
 int heap_init(void)
 {
@@ -24,7 +25,7 @@ int heap_init(void)
 
 	printk("mapped pages -> frames for heap from %p to %08x\n", curr, KHEAP_END);
 
-	/* create_heap(curr, KHEAP_END, KHEAP_MAX, super=0, writable=1) */
+	kernel_heap_init(curr, KHEAP_END, KHEAP_MAX);
 
 	return 0;
 }

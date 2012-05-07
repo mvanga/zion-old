@@ -4,10 +4,18 @@
 #include <zion/module.h>
 #include <zion/jiffies.h>
 #include <zion/bitset.h>
+#include <zion/alloc.h>
 
 int main(void)
 {
 	do_initcalls_core();
+	int *a = kmalloc(sizeof(int));
+	*a = 5;
+	printk("%p %d\n", a, *a);
+	kfree(a);
+	a = kmalloc(sizeof(int));
+	*a = 10;
+	printk("%p %d\n", a, *a);
 	while (1) {
 		printk(".");
 		delay(100);
