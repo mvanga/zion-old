@@ -9,7 +9,7 @@
 #include <asm/paging.h>
 #include <asm/alloc.h>
 
-struct bitset *frames;
+struct bitset frames;
 
 /* The current page directory */
 struct page_dir *curr_page_dir;
@@ -20,26 +20,16 @@ struct page_table page_table_low __attribute__ ((aligned (4096)));
 extern uint32_t alloc_current;
 extern void phys_frame_clone(uint32_t src, uint32_t dest);
 
-struct bitset *arch_bitset_create(int nbits)
+void arch_bitset_create(struct bitset *b, int nbits)
 {
 	int len;
-	struct bitset *b;
 
 	len = (nbits/(sizeof(uint32_t)*8)) +
 		((nbits%(sizeof(uint32_t)*8)) ? 1 : 0);
 
-	b = arch_kmalloc(sizeof(struct bitset));
-	if (!b)
-		return NULL;
 	b->bits = arch_kmalloc(len * sizeof(uint32_t));
-	/* ignore alloc failures */
-	if (!b->bits)
-		return NULL;
-
 	memset(b->bits, 0, len*sizeof(uint32_t));
 	b->len = len;
-
-	return b;
 }
 
 
@@ -52,12 +42,12 @@ int page_frame_alloc(struct page *p, int user, int write)
 	if (p->frame & PAGE_FRAME_ADDR_MASK)
 		return -1;
 
-	i = bit_find_first_free(frames);
+	i = bit_find_first_free(&frames);
 	if (i < 0) {
 		printk("No free frames left!\n");
 		for (;;);
 	}
-	bit_set(frames, i);
+	bit_set(&frames, i);
 	p->frame = 0;
 	p->frame |= PAGE_PRESENT;
 	if (write)
@@ -74,7 +64,7 @@ void page_frame_free(struct page *page)
 {
 	if (!(page->frame & PAGE_FRAME_ADDR_MASK))
 		return;
-	bit_clear(frames, page->frame >> 12);
+	bit_clear(&frames, page->frame >> 12);
 	page->frame = 0;
 }
 
@@ -100,8 +90,8 @@ struct page *page_get(struct page_dir *dir, uint32_t addr, int alloc)
 		uint32_t frame_idx;
 
 		frame_idx = dir->tables[addr/1024]->pages[addr%1024].frame >> 12;
-		if (!bit_test(frames, frame_idx))
-			bit_set(frames, frame_idx);
+		if (!bit_test(&frames, frame_idx))
+			bit_set(&frames, frame_idx);
 	}
 	return &dir->tables[addr/1024]->pages[addr%1024];
 }
@@ -160,7 +150,7 @@ int paging_alloc_init(void)
 	uint32_t i = 0;
 	uint32_t mem_end = 0x1000000;
 
-	frames = arch_bitset_create(mem_end/4096);
+	arch_bitset_create(&frames, mem_end/4096);
 
 	for (i = 0; i < 1024; i++)
 		page_get(&kern_page_dir, i << 12, 0);
