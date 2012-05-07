@@ -84,7 +84,7 @@ struct page *page_get(struct page_dir *dir, uint32_t addr, int alloc)
 	if (!dir->tables[addr/1024]) {
 		uint32_t phys;
 
-		printk("!\n");
+		printk("GAH\n");
 		if (!alloc)
 			return NULL;
 
@@ -215,4 +215,10 @@ void paging_init_post(void)
 	kern_page_dir.tables_phys[0] = 0;
 	kern_page_dir.tables[0] = 0;
 	request_exception(14, page_fault_handler);
+}
+
+uint32_t virt_to_phys(void *vaddr)
+{
+	struct page *p = page_get(&kern_page_dir, (uint32_t)vaddr, 0);
+	return (p->frame & PAGE_FRAME_ADDR_MASK) | ((uint32_t)vaddr & 0xfff);
 }

@@ -39,4 +39,6 @@ int page_frame_alloc(struct page *p, int user, int write);
 void page_frame_free(struct page *page);
 struct page *page_get(struct page_dir *dir, uint32_t addr, int alloc);
 
+uint32_t virt_to_phys(void *vaddr);
+
 #endif
