@@ -1,6 +1,7 @@
 #include <zion/alloc.h>
 #include <zion/types.h>
 #include <zion/stdlib.h>
+#include <zion/stdio.h>
 
 #define BLOCKSIZE		(sizeof(struct alloc_area) - 1)
 
@@ -48,6 +49,7 @@ void *alloc_area_split(struct alloc_area *area, int size)
 	area->next = new;
 	if (new->next)
 		new->next->prev = new;
+	area->flags &= ~ALLOC_FLAG_FREE;
 
 	return ptr;
 }
@@ -71,6 +73,15 @@ void alloc_area_merge(struct alloc_area *area, struct alloc_area *main)
 	}
 }
 
+void alloc_area_print(struct alloc_area *a)
+{
+	while (a) {
+		printk("%p(%x,%c)->", a, a->size, a->flags & ALLOC_FLAG_FREE ? 'f' : ' ');
+		a = a->next;
+	}
+	printk("\n");
+}
+
 void *alloc(struct alloc_area *area, int size, uint32_t flags)
 {
 	uint32_t start;
@@ -79,20 +90,30 @@ void *alloc(struct alloc_area *area, int size, uint32_t flags)
 
 	t = area;
 	while (t) {
-		if (t->size >= (uint32_t)size && flags & ALLOC_ALIGN) {
+		if (!(t->flags & ALLOC_FLAG_FREE))
+			goto loop_continue;
+		if (t->size < (uint32_t)size)
+			goto loop_continue;
+
+		if (flags & ALLOC_ALIGN) {
 			start = (uint32_t)t->data;
 			if (start & 0xfff) {
 				start &= 0xfffff000;
 				start += 4096;
 			}
 			if (start < (uint32_t)(t->data + t->size)) {
-				ret = alloc_area_split(t, start - (uint32_t)t->data);
+				ret = alloc_area_split(t, size + start - (uint32_t)t->data);
+				if (!ret)
+					return NULL;
 				return (char *)ret + (start - (uint32_t)t->data);
 			}
-		} else if (t->size >= (uint32_t)size)
+		} else {
 			return alloc_area_split(t, size);
+		}
+loop_continue:
 		t = t->next;
 	}
+	
 	return NULL;
 }
 

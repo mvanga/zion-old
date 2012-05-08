@@ -3,6 +3,7 @@
 #include <zion/jiffies.h>
 #include <zion/stdio.h>
 
+#include <asm/task.h>
 #include <asm/irq.h>
 #include <asm/regs.h>
 #include <asm/io.h>
@@ -10,6 +11,7 @@
 static void timer_handler(struct regs *regs __attribute__((unused)))
 {
 	jiffies++;
+	schedule();
 }
 
 int timer_init(void)

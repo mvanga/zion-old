@@ -11,6 +11,7 @@
 .extern __text_start
 .extern __bss_start
 .extern __bss_end
+.extern __stack_top_phys
 
 .align 4
 mboot:
@@ -19,6 +20,7 @@ mboot:
 	.long MBOOT_CHECKSUM
 
 .globl start
+.globl sys_stack
 .extern main
 start:
 	/*

@@ -57,6 +57,14 @@ SECTIONS
 		*(.bss)
 		__bss_end = .;
 	}
+
+	. = ALIGN(4096);
+	__stack_bottom = .;
+	__stack_bottom_phys = . - 0xC0000000;
+	. += 0x2000;
+	__stack_top = .;
+	__stack_top_phys = . - 0xC0000000 - 0x1;
+
 	. = ALIGN(4096);
 	__alloc_start_phys = . - 0xC0000000;
 	__alloc_start = .;

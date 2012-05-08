@@ -6,18 +6,19 @@
 #include <zion/bitset.h>
 #include <zion/alloc.h>
 
+#include <asm/task.h>
+
 int main(void)
 {
+	char ch = 'B';
+	int ret;
+
 	do_initcalls_core();
-	int *a = kmalloc(sizeof(int), ALLOC_KERN | ALLOC_ALIGN);
-	*a = 5;
-	printk("%p %d\n", a, *a);
-	kfree(a);
-	a = kmalloc(sizeof(int), ALLOC_KERN);
-	*a = 10;
-	printk("%p %d\n", a, *a);
+	ret = fork();
+	if (ret == 0)
+		ch = 'B';
 	while (1) {
-		printk(".");
+		printk("%c", ch);
 		delay(100);
 	}
 	do_exitcalls_core();

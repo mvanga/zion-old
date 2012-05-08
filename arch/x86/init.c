@@ -8,6 +8,7 @@
 #include <asm/segment.h>
 #include <asm/paging.h>
 #include <asm/heap.h>
+#include <asm/task.h>
 
 extern int main();
 extern struct console early_printk;
@@ -27,10 +28,10 @@ int arch_main(void)
 	idt_init();
 	/* unmap the first 4mb of pages */
 	paging_init_post();
-
 	heap_init();
-
 	kern_page_dir_clone();
+
+	task_init();
 
 	/* we can safely enable interrupts here */
 	asm volatile("sti");

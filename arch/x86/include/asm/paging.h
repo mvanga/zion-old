@@ -30,6 +30,7 @@ struct page_dir {
 };
 
 extern struct page_dir kern_page_dir;
+extern struct page_dir *curr_page_dir;
 
 void paging_init_pre(void);
 int paging_alloc_init(void);

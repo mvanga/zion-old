@@ -20,6 +20,9 @@ struct page_table page_table_low __attribute__ ((aligned (4096)));
 extern uint32_t alloc_current;
 extern void phys_frame_clone(uint32_t src, uint32_t dest);
 
+extern uint32_t __stack_top;
+extern uint32_t __stack_bottom;
+
 void arch_bitset_create(struct bitset *b, int nbits)
 {
 	int len;
@@ -76,7 +79,6 @@ struct page *page_get(struct page_dir *dir, uint32_t addr, int alloc)
 	if (!dir->tables[addr/1024]) {
 		uint32_t phys;
 
-		printk("GAH\n");
 		if (!alloc)
 			return NULL;
 
@@ -215,7 +217,6 @@ void kern_page_dir_clone(void)
 {
 	curr_page_dir = page_dir_clone(&kern_page_dir);
 	switch_page_dir(curr_page_dir);
-	printk("%08x\n", curr_page_dir->tables_phys_addr);
 }
 
 uint32_t virt_to_phys(void *vaddr)
@@ -280,4 +281,58 @@ struct page_dir *page_dir_clone(struct page_dir *src)
 		}
 	}
 	return new;
+}
+
+extern uint32_t sys_stack;
+
+void move_stack(void *new_stack_start, uint32_t size)
+{
+	uint32_t i;
+	// Allocate some space for the new stack.
+	for( i = (uint32_t)new_stack_start;
+			i >= ((uint32_t)new_stack_start-size);
+			i -= 0x1000)
+	{
+		// General-purpose stack is in user-mode.
+		page_frame_alloc( page_get(curr_page_dir, i, 1), 1 /* User mode */, 1 /* Is writable */ );
+	}
+
+	// Flush the TLB by reading and writing the page directory address again.
+	uint32_t pd_addr;
+	asm volatile("mov %%cr3, %0" : "=r" (pd_addr));
+	asm volatile("mov %0, %%cr3" : : "r" (pd_addr));
+
+	// Old ESP and EBP, read from registers.
+	uint32_t old_stack_pointer; asm volatile("mov %%esp, %0" : "=r" (old_stack_pointer));
+	uint32_t old_base_pointer;  asm volatile("mov %%ebp, %0" : "=r" (old_base_pointer));
+
+	// Offset to add to old stack addresses to get a new stack address.
+	uint32_t offset            = (uint32_t)new_stack_start - sys_stack;
+
+	// New ESP and EBP.
+	uint32_t new_stack_pointer = old_stack_pointer + offset;
+	uint32_t new_base_pointer  = old_base_pointer  + offset;
+
+	// Copy the stack.
+	memcpy((void*)new_stack_pointer, (void*)old_stack_pointer, sys_stack-old_stack_pointer);
+
+	// Backtrace through the original stack, copying new values into
+	// the new stack.  
+	for(i = (uint32_t)new_stack_start; i > (uint32_t)new_stack_start-size; i -= 4)
+	{
+		uint32_t tmp = * (uint32_t*)i;
+		// If the value of tmp is inside the range of the old stack, assume it is a base pointer
+		// and remap it. This will unfortunately remap ANY value in this range, whether they are
+		// base pointers or not.
+		if (( old_stack_pointer < tmp) && (tmp < sys_stack))
+		{
+			tmp = tmp + offset;
+			uint32_t *tmp2 = (uint32_t*)i;
+			*tmp2 = tmp;
+		}
+	}
+
+	// Change stacks.
+	asm volatile("mov %0, %%esp" : : "r" (new_stack_pointer));
+	asm volatile("mov %0, %%ebp" : : "r" (new_base_pointer));
 }

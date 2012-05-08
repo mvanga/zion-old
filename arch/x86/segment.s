@@ -3,6 +3,11 @@
 .globl gdt_write
 .globl idt_write
 .globl phys_frame_clone
+.globl read_eip
+
+read_eip:
+	pop %eax
+	jmp *%eax
 
 gdt_write:
 	mov 4(%esp), %eax
