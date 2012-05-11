@@ -11,7 +11,7 @@
 .extern __text_start
 .extern __bss_start
 .extern __bss_end
-.extern __stack_top_phys
+.extern __stack_start
 
 .align 4
 mboot:
@@ -42,16 +42,10 @@ higherhalf:
 	 * from now the CPU will translate automatically every address
 	 * by adding the base 0x40000000
 	 */
-	mov $sys_stack, %esp
+	mov $__stack_start, %esp
 	call arch_main
 loop:
 	jmp loop
-
-
-.section .bss
-.align 32
-.skip 0x2000
-sys_stack:
 
 .section .setup, "a"
 trickgdt:

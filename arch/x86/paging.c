@@ -254,6 +254,9 @@ struct page_table *page_table_clone(struct page_table *src, uint32_t *phys)
 	return t;
 }
 
+extern uint32_t __stack_start;
+extern uint32_t __stack_end;
+
 struct page_dir *page_dir_clone(struct page_dir *src)
 {
 	int i;
@@ -269,6 +272,10 @@ struct page_dir *page_dir_clone(struct page_dir *src)
 	phys = virt_to_phys(&new->tables_phys);
 	new->tables_phys_addr = phys;
 
+	int stack_end = ((uint32_t)(&__stack_end) >> 12)/1024;
+	int stack_start = ((uint32_t)(&__stack_start) >> 12)/1024;
+	printk("stack: %d to %d\n", stack_start, stack_end);
+
 	for (i = 0; i < 1024; i++) {
 		if (!src->tables[i])
 			continue;
@@ -283,7 +290,7 @@ struct page_dir *page_dir_clone(struct page_dir *src)
 	return new;
 }
 
-extern uint32_t sys_stack;
+extern uint32_t __stack_start;
 
 void move_stack(void *new_stack_start, uint32_t size)
 {
@@ -307,14 +314,14 @@ void move_stack(void *new_stack_start, uint32_t size)
 	uint32_t old_base_pointer;  asm volatile("mov %%ebp, %0" : "=r" (old_base_pointer));
 
 	// Offset to add to old stack addresses to get a new stack address.
-	uint32_t offset            = (uint32_t)new_stack_start - sys_stack;
+	uint32_t offset            = (uint32_t)new_stack_start - __stack_start;
 
 	// New ESP and EBP.
 	uint32_t new_stack_pointer = old_stack_pointer + offset;
 	uint32_t new_base_pointer  = old_base_pointer  + offset;
 
 	// Copy the stack.
-	memcpy((void*)new_stack_pointer, (void*)old_stack_pointer, sys_stack-old_stack_pointer);
+	memcpy((void*)new_stack_pointer, (void*)old_stack_pointer, __stack_start-old_stack_pointer);
 
 	// Backtrace through the original stack, copying new values into
 	// the new stack.  
@@ -324,7 +331,7 @@ void move_stack(void *new_stack_start, uint32_t size)
 		// If the value of tmp is inside the range of the old stack, assume it is a base pointer
 		// and remap it. This will unfortunately remap ANY value in this range, whether they are
 		// base pointers or not.
-		if (( old_stack_pointer < tmp) && (tmp < sys_stack))
+		if (( old_stack_pointer < tmp) && (tmp < __stack_start))
 		{
 			tmp = tmp + offset;
 			uint32_t *tmp2 = (uint32_t*)i;

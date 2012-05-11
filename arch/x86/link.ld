@@ -55,6 +55,10 @@ SECTIONS
 	.bss ALIGN(4096) : AT(ADDR(.bss) - 0xC0000000) {
 		bss = .;
 		*(.bss)
+		. = ALIGN(4096);
+		__stack_end = .;
+		. += 0x2000;
+		__stack_start = .;
 		__bss_end = .;
 	}
 

@@ -31,6 +31,8 @@ int arch_main(void)
 	heap_init();
 	kern_page_dir_clone();
 
+	move_stack((void *)0xe0000000, 8192);
+
 	task_init();
 
 	/* we can safely enable interrupts here */
