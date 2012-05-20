@@ -23,8 +23,8 @@ struct page_table {
 };
 
 struct page_dir {
-	struct page_table *tables[1024];
 	uint32_t tables_phys[1024];
+	struct page_table *tables[1024];
 	uint32_t dir_phys_addr;
 	uint32_t tables_phys_addr;
 };

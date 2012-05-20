@@ -103,8 +103,9 @@ void *alloc(struct alloc_area *area, int size, uint32_t flags)
 			}
 			if (start < (uint32_t)(t->data + t->size)) {
 				ret = alloc_area_split(t, size + start - (uint32_t)t->data);
-				if (!ret)
+				if (!ret) {
 					return NULL;
+				}
 				return (char *)ret + (start - (uint32_t)t->data);
 			}
 		} else {
@@ -152,8 +153,13 @@ void kernel_heap_init(uint32_t start, uint32_t brk, uint32_t max)
 
 void *kmalloc(uint32_t size, uint32_t flags)
 {
-	if (flags & ALLOC_KERN)
-		return alloc(kern_heap.alloc, size, flags);
+	void *ret = NULL;
+	if (flags & ALLOC_KERN) {
+		ret = alloc(kern_heap.alloc, size, flags);
+		if (!ret)
+			alloc_area_print(kern_heap.alloc);
+		return ret;
+	}
 	return NULL;
 }
 

@@ -22,25 +22,52 @@ gdt_write:
 flush:
 	ret
 
-
 idt_write:
 	mov 4(%esp), %eax
 	lidt (%eax)
 	ret
+
+.extern gdt_ptr
 
 phys_frame_clone:
 	push %ebx
 	pushf
 	cli
 
-	mov 12(%esp), %ebx
-	mov 16(%esp), %ecx
+	mov 12(%esp), %eax
+	mov 16(%esp), %ebx
+	mov 20(%esp), %ecx
 
+	/* adjust stack pointer here */
+	mov %esp, %edx
+	sub %eax, %edx
+	mov %edx, %esp
+
+	/* adjust base pointer here */
+	mov %ebp, %edx
+	sub %eax, %edx
+	mov %edx, %ebp
+
+	lgdt trickgdt
+	mov $0x10, %ax
+	mov %ax, %ds
+	mov %ax, %es
+	mov %ax, %fs
+	mov %ax, %gs
+	mov %ax, %ss
+	jmp $0x08, $flush2
+hang2:
+	jmp hang2
+
+	add %eax, %esp
+	add %eax, %ebp
+
+flush2:
 	mov %cr0, %edx
 	and $0x7fffffff, %edx
 	mov %edx, %cr0
 
-	mov $1024, %edx
+	mov $0x400, %edx
 
 copy_loop:
 	mov (%ebx), %eax
@@ -49,6 +76,16 @@ copy_loop:
 	add $0x4, %ecx
 	dec %edx
 	jnz copy_loop
+
+	lgdt gdt_ptr
+	mov $0x10, %ax
+	mov %ax, %ds
+	mov %ax, %es
+	mov %ax, %fs
+	mov %ax, %gs
+	mov %ax, %ss
+	jmp $0x08, $flush3
+flush3:
 
 	mov %cr0, %edx
 	or $0x80000000, %edx

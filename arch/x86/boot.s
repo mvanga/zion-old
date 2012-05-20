@@ -48,6 +48,7 @@ loop:
 	jmp loop
 
 .section .setup, "a"
+.globl trickgdt
 trickgdt:
 	.word gdt_end - gdt - 1
 	.long gdt

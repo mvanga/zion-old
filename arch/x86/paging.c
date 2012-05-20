@@ -18,7 +18,7 @@ struct page_dir kern_page_dir __attribute__ ((aligned (4096)));
 struct page_table page_table_low __attribute__ ((aligned (4096)));
 
 extern uint32_t alloc_current;
-extern void phys_frame_clone(uint32_t src, uint32_t dest);
+extern void phys_frame_clone(uint32_t esp_off, uint32_t src, uint32_t dest);
 
 extern uint32_t __stack_top;
 extern uint32_t __stack_bottom;
@@ -58,6 +58,7 @@ int page_frame_alloc(struct page *p, int user, int write)
 	if (user)
 		p->frame |= PAGE_USER;
 	p->frame |= ((i << 12) & PAGE_FRAME_ADDR_MASK);
+	printk("alloc frame at %08x\n", p->frame & PAGE_FRAME_ADDR_MASK);
 
 	return 0;
 }
@@ -82,9 +83,11 @@ struct page *page_get(struct page_dir *dir, uint32_t addr, int alloc)
 		if (!alloc)
 			return NULL;
 
+		printk("allocating new page table\n");
 		dir->tables[addr/1024] = kmalloc(sizeof(struct page_table),
 			ALLOC_KERN | ALLOC_ALIGN);
 		phys = virt_to_phys(dir->tables[addr/1024]);
+		printk("got physical address %08x\n", phys);
 		memset(dir->tables[addr/1024], 0, sizeof(struct page_table));
 		dir->tables_phys[addr/1024] = phys | PTABLE_PRESENT |
 			PTABLE_WRITABLE | PTABLE_USER;
@@ -208,8 +211,8 @@ void paging_init_pre(void)
 
 void paging_init_post(void)
 {
-	kern_page_dir.tables_phys[0] = 0;
-	kern_page_dir.tables[0] = 0;
+//	kern_page_dir.tables_phys[0] = 0;
+//	kern_page_dir.tables[0] = 0;
 	request_exception(14, page_fault_handler);
 }
 
@@ -231,17 +234,18 @@ uint32_t virt_to_phys(void *vaddr)
 	}
 }
 
-struct page_table *page_table_clone(struct page_table *src, uint32_t *phys)
+struct page_table *page_table_clone(struct page_table *src, uint32_t *phys, int idx)
 {
 	int i;
 	struct page_table *t;
 
 	t = kmalloc(sizeof(struct page_table), ALLOC_KERN | ALLOC_ALIGN);
-	if (t) {
+	if (!t) {
 		printk("failed to clone page table\n");
 		for (;;);
 	}
 	*phys = virt_to_phys(t);
+	printk("got physical mem: %08x\n", *phys);
 	memset(t, 0, sizeof(struct page_table));
 
 	for (i = 0; i < 1024; i++) {
@@ -249,7 +253,24 @@ struct page_table *page_table_clone(struct page_table *src, uint32_t *phys)
 			continue;
 		page_frame_alloc(&t->pages[i], 1, 0);
 		t->pages[i].frame |= src->pages[i].frame & ~PAGE_FRAME_ADDR_MASK;
-		phys_frame_clone(src->pages[i].frame << 12, t->pages[i].frame << 12);
+		printk("%d %d\n", idx, i);
+		printk("allocated frame phys:%08x, virt:%08x\n", (t->pages[i].frame & PAGE_FRAME_ADDR_MASK) + 0xc0000000, (idx << 22) | (i << 12));
+		printk("source frame at physical address: %08x\n", src->pages[i].frame & PAGE_FRAME_ADDR_MASK);
+//		uint32_t p1_addr = (uint32_t)((t->pages[i].frame & PAGE_FRAME_ADDR_MASK) + 0xc0000000);
+//		uint32_t p2_addr = (uint32_t)((src->pages[i].frame & PAGE_FRAME_ADDR_MASK) + 0xc0000000);
+//		char *mcdest = (char *)p1_addr;
+//		char *mcsrc = (char *)p2_addr;
+//		printk("%p %p\n", mcdest, mcsrc);
+//		asm volatile ("cli");
+//		memcpy(mcdest, mcsrc, 4096);
+//		asm volatile ("sti");
+//		for (;;);
+		uint32_t esp;
+		asm volatile("mov %%esp, %0" : "=r" (esp));
+		uint32_t phys = virt_to_phys((void *)esp);
+		uint32_t offset = ((uint32_t)(esp + 0x40000000) - phys);
+		printk("offset: %08x, calc: %08x, phys = %08x\n", offset, (esp + 0x40000000) - offset, phys);
+		phys_frame_clone(offset, src->pages[i].frame & 0xfffff000, t->pages[i].frame & 0xfffff000);
 	}
 	return t;
 }
@@ -263,6 +284,7 @@ struct page_dir *page_dir_clone(struct page_dir *src)
 	uint32_t phys;
 	struct page_dir *new;
 
+	printk("allocating new page directory\n");
 	new = kmalloc(sizeof(struct page_dir), ALLOC_KERN | ALLOC_ALIGN);
 	if (!new) {
 		printk("failed to clone directory\n");
@@ -272,10 +294,6 @@ struct page_dir *page_dir_clone(struct page_dir *src)
 	phys = virt_to_phys(&new->tables_phys);
 	new->tables_phys_addr = phys;
 
-	int stack_end = ((uint32_t)(&__stack_end) >> 12)/1024;
-	int stack_start = ((uint32_t)(&__stack_start) >> 12)/1024;
-	printk("stack: %d to %d\n", stack_start, stack_end);
-
 	for (i = 0; i < 1024; i++) {
 		if (!src->tables[i])
 			continue;
@@ -283,7 +301,8 @@ struct page_dir *page_dir_clone(struct page_dir *src)
 			new->tables[i] = src->tables[i];
 			new->tables_phys[i] = src->tables_phys[i];
 		} else {
-			new->tables[i] = page_table_clone(src->tables[i], &phys);
+			printk("cloning table at %08x\n", (i << 22));
+			new->tables[i] = page_table_clone(src->tables[i], &phys, i);
 			new->tables_phys[i] = phys | 0x7;
 		}
 	}
@@ -292,54 +311,47 @@ struct page_dir *page_dir_clone(struct page_dir *src)
 
 extern uint32_t __stack_start;
 
-void move_stack(void *new_stack_start, uint32_t size)
+void move_stack(uint32_t new_stack, uint32_t size)
 {
 	uint32_t i;
-	// Allocate some space for the new stack.
-	for( i = (uint32_t)new_stack_start;
-			i >= ((uint32_t)new_stack_start-size);
-			i -= 0x1000)
-	{
-		// General-purpose stack is in user-mode.
-		page_frame_alloc( page_get(curr_page_dir, i, 1), 1 /* User mode */, 1 /* Is writable */ );
-	}
-
-	// Flush the TLB by reading and writing the page directory address again.
 	uint32_t pd_addr;
+	uint32_t stack_start;
+	uint32_t esp_old;
+	uint32_t ebp_old;	
+	uint32_t offset;
+	uint32_t esp_new;
+	uint32_t ebp_new;
+
+	stack_start = (uint32_t)&__stack_start;
+
+	for (i = new_stack; i >= (new_stack - size); i -= 4096)
+		page_frame_alloc(page_get(curr_page_dir, i, 1), 1, 1);
+
+	/* flush page directory */
 	asm volatile("mov %%cr3, %0" : "=r" (pd_addr));
 	asm volatile("mov %0, %%cr3" : : "r" (pd_addr));
+	/* get old esp and ebp */
+	asm volatile("mov %%esp, %0" : "=r" (esp_old));
+	asm volatile("mov %%ebp, %0" : "=r" (ebp_old));
 
-	// Old ESP and EBP, read from registers.
-	uint32_t old_stack_pointer; asm volatile("mov %%esp, %0" : "=r" (old_stack_pointer));
-	uint32_t old_base_pointer;  asm volatile("mov %%ebp, %0" : "=r" (old_base_pointer));
+	offset = new_stack - stack_start;
+	esp_new = esp_old + offset;
+	ebp_new  = ebp_old  + offset;
 
-	// Offset to add to old stack addresses to get a new stack address.
-	uint32_t offset            = (uint32_t)new_stack_start - __stack_start;
+	printk("new_stack=%08x, old_stack=%08x, size=%08x\n", esp_new, esp_old, stack_start-esp_old);
+	memcpy((void *)esp_new, (void *)esp_old, stack_start - esp_old);
 
-	// New ESP and EBP.
-	uint32_t new_stack_pointer = old_stack_pointer + offset;
-	uint32_t new_base_pointer  = old_base_pointer  + offset;
+	for(i = new_stack; i > new_stack - size; i -= 4) {
+		uint32_t tmp = *((uint32_t *)i);
+		if ((esp_old < tmp) && (tmp < stack_start)) {
+			uint32_t *tmp2;
 
-	// Copy the stack.
-	memcpy((void*)new_stack_pointer, (void*)old_stack_pointer, __stack_start-old_stack_pointer);
-
-	// Backtrace through the original stack, copying new values into
-	// the new stack.  
-	for(i = (uint32_t)new_stack_start; i > (uint32_t)new_stack_start-size; i -= 4)
-	{
-		uint32_t tmp = * (uint32_t*)i;
-		// If the value of tmp is inside the range of the old stack, assume it is a base pointer
-		// and remap it. This will unfortunately remap ANY value in this range, whether they are
-		// base pointers or not.
-		if (( old_stack_pointer < tmp) && (tmp < __stack_start))
-		{
 			tmp = tmp + offset;
-			uint32_t *tmp2 = (uint32_t*)i;
+			tmp2 = (uint32_t *)i;
 			*tmp2 = tmp;
 		}
 	}
 
-	// Change stacks.
-	asm volatile("mov %0, %%esp" : : "r" (new_stack_pointer));
-	asm volatile("mov %0, %%ebp" : : "r" (new_base_pointer));
+	asm volatile("mov %0, %%esp" : : "r" (esp_new));
+	asm volatile("mov %0, %%ebp" : : "r" (ebp_new));
 }
